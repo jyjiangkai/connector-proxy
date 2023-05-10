@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+	log "k8s.io/klog/v2"
 )
 
 // forward http://xxx.connector.vanua.ai to http://xxx.connector.vanua.ai/api/v1/source/chatgpt/{connector-id}
@@ -34,7 +35,7 @@ func main() {
 		Addr:    fmt.Sprintf(":%d", c.Port),
 		Handler: proxy,
 	}
-	fmt.Printf("proxy start on port:%d \n", c.Port)
+	log.Infof("proxy start on port: %d\n", c.Port)
 	err = server.ListenAndServe()
 	if err != nil {
 		panic("proxy listen error " + err.Error())
@@ -47,7 +48,7 @@ type Proxy struct {
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// xxx.connector.vanua.ai
-	fmt.Printf("receive request, host: %s\n", r.Host)
+	log.Infof("receive request, host: %s, path: %s\n", r.Host, r.URL.Path)
 	hosts := strings.Split(r.Host, ".")
 	if len(hosts) != 4 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -59,6 +60,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	log.Infof("forward request, host: %s, path: %s\n", connector.Service, fmt.Sprintf("/api/v1/source/chatgpt/%s", connector.ConnectorID))
 	director := func(req *http.Request) {
 		req.URL.Scheme = "http"
 		req.URL.Host = connector.Service
@@ -92,4 +94,3 @@ func ParseConfig(c *Config) error {
 	}
 	return yaml.Unmarshal(bytes, c)
 }
-
