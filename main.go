@@ -11,7 +11,7 @@ import (
 	log "k8s.io/klog/v2"
 )
 
-// forward http://xxx.connector.vanua.ai to http://xxx.connector.vanua.ai/api/v1/source/chatgpt/{connector-id}
+// forward http://xxx.connector.vanua.ai to http://xxx.connector.vanua.ai/api/v1/source/chatai/{connector-id}
 
 func main() {
 	var c Config
@@ -60,11 +60,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	log.Infof("forward request, host: %s, path: %s\n", connector.Service, fmt.Sprintf("/api/v1/source/chatgpt/%s", connector.ConnectorID))
+	log.Infof("forward request, host: %s, path: %s\n", connector.Service, fmt.Sprintf("/api/v1/source/chatai/%s", connector.ConnectorID))
 	director := func(req *http.Request) {
 		req.URL.Scheme = "http"
 		req.URL.Host = connector.Service
-		req.URL.Path = "/api/v1/source/chatgpt/" + connector.ConnectorID
+		req.URL.Path = "/api/v1/source/chatai/" + connector.ConnectorID
 		req.Host = connector.Service
 		req.Header.Add("X-Conenctor-ID", connector.ConnectorID)
 	}
