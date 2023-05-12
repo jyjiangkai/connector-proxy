@@ -1,4 +1,0 @@
-port: 8080
-connector:
-  "vanus-connect-runtime.vanus.svc.cluster.local":
-    8ef3e69anxix17e7: 645a1a8ff771bb92f89a1098

@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: myproxy
+  name: source-chatgpt-proxy
   namespace: vanus
 spec:
   selector:
-    name: myproxy
+    name: source-chatgpt-proxy
   type: ClusterIP
   ports:
     - port: 80
@@ -15,13 +15,13 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: myproxy
+  name: source-chatgpt-proxy-config
   namespace: vanus
 data:
   config.yml: |-
     port: 8080
     connector:
-      "vanus-connect-runtime.vanus.svc.cluster.local":
+      "source-chatgpt.vanus.svc.cluster.local":
         c25ib00qsph4f0os: 6426fd9939e62074b965e2e5
         51nzju4z3sg4e922: 6427894d39e62074b965e30f
         2y65ih8f8ppnt10g: 6427d60039e62074b965e316
@@ -121,29 +121,29 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myproxy
+  name: source-chatgpt-proxy
   namespace: vanus
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: myproxy
+      name: source-chatgpt-proxy
   template:
     metadata:
       labels:
-        name: myproxy
+        name: source-chatgpt-proxy
     spec:
       serviceAccountName: vanus-operator
       terminationGracePeriodSeconds: 10
       containers:
       - name: container1
         # Replace this with the built image name
-        image: public.ecr.aws/vanus/connector/proxy:latest
+        image: public.ecr.aws/vanus/connector/proxy:chatgpt
         imagePullPolicy: Always
         volumeMounts:
-          - name: myproxy
+          - name: config
             mountPath: /vanus/config
       volumes:
-        - name: myproxy
+        - name: config
           configMap:
-            name: myproxy
+            name: source-chatgpt-proxy-config
