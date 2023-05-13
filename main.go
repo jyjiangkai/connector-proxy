@@ -11,7 +11,7 @@ import (
 	log "k8s.io/klog/v2"
 )
 
-// forward http://xxx.connector.vanua.ai to http://xxx.connector.vanua.ai/api/v1/source/chatgpt/{connector-id}
+// forward http://xxx.connector.vanua.ai to http://xxx.connector.vanua.ai/api/v1/source/{type}/{connector-id}
 
 func main() {
 	var c Config
@@ -23,11 +23,16 @@ func main() {
 	for service, connector := range c.Connector {
 		for uuid, id := range connector {
 			mapping[uuid] = Connector{
-				Service:     service,
-				ConnectorID: id,
+				ID:      id,
+				Kind:    getConnectorKind(service),
+				Type:    getConnectorType(service),
+				Service: service,
 			}
 		}
 	}
+
+	log.Infof("show connector mapping: %+v\n", mapping)
+
 	proxy := &Proxy{
 		mapping: mapping,
 	}
@@ -60,21 +65,24 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	log.Infof("forward request, host: %s, path: %s\n", connector.Service, fmt.Sprintf("/api/v1/source/chatgpt/%s", connector.ConnectorID))
+	path := fmt.Sprintf("/api/v1/%s/%s/%s", connector.Kind, connector.Type, connector.ID)
+	log.Infof("forward request, host: %s, path: %s\n", connector.Service, path)
 	director := func(req *http.Request) {
 		req.URL.Scheme = "http"
 		req.URL.Host = connector.Service
-		req.URL.Path = "/api/v1/source/chatgpt/" + connector.ConnectorID
+		req.URL.Path = path
 		req.Host = connector.Service
-		req.Header.Add("X-Conenctor-ID", connector.ConnectorID)
+		req.Header.Add("X-Conenctor-ID", connector.ID)
 	}
 	proxy := &httputil.ReverseProxy{Director: director}
 	proxy.ServeHTTP(w, r)
 }
 
 type Connector struct {
-	Service     string
-	ConnectorID string
+	ID      string
+	Kind    string
+	Type    string
+	Service string
 }
 
 type Config struct {
@@ -93,4 +101,12 @@ func ParseConfig(c *Config) error {
 		return err
 	}
 	return yaml.Unmarshal(bytes, c)
+}
+
+func getConnectorKind(service string) string {
+	return strings.Split(strings.Split(service, ".")[0], "-")[0]
+}
+
+func getConnectorType(service string) string {
+	return strings.Split(strings.Split(service, ".")[0], "-")[1]
 }
